@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Test and Redirect</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .testing {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .fallback {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Connection Test</h1>
+        <div id="status" class="status testing">Testing connection to 10.0.65.91...</div>
+        <div id="details"></div>
+    </div>
+
+    <script>
+        const statusDiv = document.getElementById('status');
+        const detailsDiv = document.getElementById('details');
+        const primaryHost = '10.0.65.91';
+        const fallbackUrl = 'https://lendlease.remoteaccess.neeve.ai/';
+        
+        async function testConnection() {
+            try {
+                // Test connection to the IP address
+                // Note: We'll test both HTTP and HTTPS since protocol wasn't specified
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+                
+                let response;
+                try {
+                    // Try HTTPS first
+                    response = await fetch(`https://${primaryHost}`, {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        signal: controller.signal
+                    });
+                } catch (httpsError) {
+                    // If HTTPS fails, try HTTP
+                    response = await fetch(`http://${primaryHost}`, {
+                        method: 'HEAD',
+                        mode: 'no-cors',
+                        signal: controller.signal
+                    });
+                }
+                
+                clearTimeout(timeoutId);
+                
+                // If we reach here, the connection succeeded
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✓ Connection to ${primaryHost} successful!`;
+                detailsDiv.innerHTML = `<p>Redirecting to http://${primaryHost} in 2 seconds...</p>`;
+                
+                setTimeout(() => {
+                    window.location.href = `http://${primaryHost}`;
+                }, 2000);
+                
+            } catch (error) {
+                // Connection failed, use fallback
+                statusDiv.className = 'status fallback';
+                statusDiv.textContent = `✗ Could not reach ${primaryHost}`;
+                detailsDiv.innerHTML = `
+                    <p>Using fallback connection...</p>
+                    <p>Redirecting to ${fallbackUrl} in 2 seconds...</p>
+                `;
+                
+                setTimeout(() => {
+                    window.location.href = fallbackUrl;
+                }, 2000);
+            }
+        }
+        
+        // Start the connection test when page loads
+        window.addEventListener('load', testConnection);
+    </script>
+</body>
+</html>
